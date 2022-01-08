@@ -112,15 +112,23 @@ module Rswag
 
           parameters.select { |p| p[:in] == :query }.each_with_index do |p, i|
             path_template.concat(i.zero? ? '?' : '&')
-            path_template.concat(build_query_string_part(p, example.send(p[:method_name])))
+            path_template.concat(build_query_string_part(p, example.send(p[:method_name]), swagger_doc))
           end
         end
       end
 
-      def build_query_string_part(param, value)
+      def param_is_array?(param)
+        param[:type]&.to_sym == :array || param.dig(:schema, :type)&.to_sym == :array
+      end
+
+      def build_query_string_part(param, value, swagger_doc)
         name = param[:name]
-        type = param[:type] || param.dig(:schema, :type)
-        return "#{name}=#{value}" unless type&.to_sym == :array
+
+        if doc_version(swagger_doc).start_with?('2')
+          return "#{name}=#{value}" unless param[:type].to_sym == :array
+        else # Openapi3
+          return "#{name}=#{value}" unless param_is_array?(param)
+        end
 
         case param[:collectionFormat]
         when :ssv

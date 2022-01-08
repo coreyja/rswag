@@ -8,3 +8,5 @@
 Gemfile.lock
 /.idea/
 **/.byebug_history
+
+/.bundle

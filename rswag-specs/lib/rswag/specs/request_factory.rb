@@ -32,9 +32,10 @@ module Rswag
 
         # NOTE: Use of + instead of concat to avoid mutation of the metadata object
         (operation_params + path_item_params + security_params)
+          .map { |p| p.tap { |x| x[:method_name] ||= x[:name] } }
           .map { |p| p['$ref'] ? resolve_parameter(p['$ref'], swagger_doc) : p }
           .uniq { |p| p[:name] }
-          .reject { |p| p[:required] == false && !example.respond_to?(p[:name]) }
+          .reject { |p| p[:required] == false && !example.respond_to?(p[:method_name]) }
       end
 
       def derive_security_params(metadata, swagger_doc)
@@ -106,12 +107,12 @@ module Rswag
 
         request[:path] = template.tap do |path_template|
           parameters.select { |p| p[:in] == :path }.each do |p|
-            path_template.gsub!("{#{p[:name]}}", example.send(p[:name]).to_s)
+            path_template.gsub!("{#{p[:name]}}", example.send(p[:method_name]).to_s)
           end
 
           parameters.select { |p| p[:in] == :query }.each_with_index do |p, i|
             path_template.concat(i.zero? ? '?' : '&')
-            path_template.concat(build_query_string_part(p, example.send(p[:name])))
+            path_template.concat(build_query_string_part(p, example.send(p[:method_name])))
           end
         end
       end
@@ -138,7 +139,7 @@ module Rswag
       def add_headers(request, metadata, swagger_doc, parameters, example)
         tuples = parameters
           .select { |p| p[:in] == :header }
-          .map { |p| [p[:name], example.send(p[:name]).to_s] }
+          .map { |p| [p[:name], example.send(p[:method_name]).to_s] }
 
         # Accept header
         produces = metadata[:operation][:produces] || swagger_doc[:produces]
@@ -188,7 +189,7 @@ module Rswag
         # PROS: simple to implement, CONS: serialization/deserialization is bypassed in test
         tuples = parameters
           .select { |p| p[:in] == :formData }
-          .map { |p| [p[:name], example.send(p[:name])] }
+          .map { |p| [p[:name], example.send(p[:method_name])] }
         Hash[tuples]
       end
 
@@ -197,9 +198,9 @@ module Rswag
 
         return nil unless body_param
 
-        raise(MissingParameterError, body_param[:name]) unless example.respond_to?(body_param[:name])
+        raise(MissingParameterError, body_param[:name]) unless example.respond_to?(body_param[:method_name])
 
-        example.send(body_param[:name]).to_json
+        example.send(body_param[:method_name]).to_json
       end
 
       def doc_version(doc)

@@ -8,14 +8,14 @@ module Rswag
         describe(template, metadata, &block)
       end
 
-      [:get, :post, :patch, :put, :delete, :head, :options, :trace].each do |verb|
+      %i[get post patch put delete head options trace].each do |verb|
         define_method(verb) do |summary, &block|
           api_metadata = { operation: { verb: verb, summary: summary } }
           describe(verb, api_metadata, &block)
         end
       end
 
-      [:operationId, :deprecated, :security].each do |attr_name|
+      %i[operationId deprecated security].each do |attr_name|
         define_method(attr_name) do |value|
           metadata[:operation][attr_name] = value
         end
@@ -31,16 +31,14 @@ module Rswag
       end
 
       # These are array properties - note the splat operator
-      [:tags, :consumes, :produces, :schemes].each do |attr_name|
+      %i[tags consumes produces schemes].each do |attr_name|
         define_method(attr_name) do |*value|
           metadata[:operation][attr_name] = value
         end
       end
 
       def parameter(attributes)
-        if attributes[:in] && attributes[:in].to_sym == :path
-          attributes[:required] = true
-        end
+        attributes[:required] = true if attributes[:in] && attributes[:in].to_sym == :path
 
         if metadata.key?(:operation)
           metadata[:operation][:parameters] ||= []
@@ -78,14 +76,14 @@ module Rswag
           end
       end
 
-      def run_test!(&block)
+      def run_test!(example_name = "returns a #{metadata[:response][:code]} response", &block)
         # NOTE: rspec 2.x support
         if RSPEC_VERSION < 3
           before do
             submit_request(example.metadata)
           end
 
-          it "returns a #{metadata[:response][:code]} response" do
+          it example_name do
             assert_response_matches_metadata(metadata)
             block.call(response) if block_given?
           end
@@ -94,7 +92,7 @@ module Rswag
             submit_request(example.metadata)
           end
 
-          it "returns a #{metadata[:response][:code]} response" do |example|
+          it example_name do |example|
             assert_response_matches_metadata(example.metadata, &block)
             example.instance_exec(response, &block) if block_given?
           end

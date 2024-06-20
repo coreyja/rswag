@@ -19,11 +19,7 @@ RSpec.describe '<%= controller_path %>', type: :request do
 <%      end -%>
 
         after do |example|
-          example.metadata[:response][:content] = {
-            'application/json' => {
-              example: JSON.parse(response.body, symbolize_names: true)
-            }
-          }
+          example.example_group.example_value JSON.parse(response.body, symbolize_names: true)
         end
         run_test!
       end

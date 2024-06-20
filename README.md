@@ -610,11 +610,7 @@ To enable examples generation from responses add callback above run_test! like:
 
 ```
 after do |example|
-  example.metadata[:response][:content] = {
-    'application/json' => {
-      example: JSON.parse(response.body, symbolize_names: true)
-    }
-  }
+  example.example_group.example_value JSON.parse(response.body, symbolize_names: true)
 end
 ```
 
